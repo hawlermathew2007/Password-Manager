@@ -2,19 +2,22 @@ package main
 
 import (
 	"fmt"
-	"os"
+	// "os"
 	"log"
   // "encoding/json"
-	"github.com/google/uuid"
+	"tools/account"
+	"tools/tree"
+	"tools/data"
 	"github.com/joho/godotenv"
-  "github.com/gdamore/tcell/v2"
+	"github.com/google/uuid"
 	"github.com/rivo/tview"
+  "github.com/gdamore/tcell/v2"
 )
 
-// How to make Credential Storage hard to dump?
+// How to make data in Storage hard to dump the hash?
 
 // Func orders:
-// - recognizeDomain
+// - RecognizeDomain
 // - addAccount
 // - deleteAccount
 // - moveAccount
@@ -29,13 +32,16 @@ import (
 // - encryptInfo & decryptInfo
 
 // Modules:
-// authentication
-// encryption
 // account 
-// root 
-// scan weak & leaked password
+// = Manage accounts
+// tree
+// = Manage tree UI
+// security - crypto, scan, auth 
+// = Help with Cryptography, Scan Weak/Leaked Password, Authentication
+// store - store, local 
+// = store help with deal with storing data to file & local deal with local memory
 
-// Global Func: removeDuplicates, recognizeDomain, addtoLog
+// Global Func: RemoveDuplicates, RecognizeDomain, Log
 // Class
 // Tree 
 // - func: Provide Current Nodes & Childs (with domain index - map), add - delete, move, update Nodes & Childs, loadTree
@@ -47,13 +53,6 @@ import (
 // - func: Add - Remove - Update Domain/AccountName/Pass (Should update the current list too), loadInfo
 // - attr: Current Data Dumps
 
-type Credential struct {
-	id 				uuid.UUID
-	username	string
-	password 	string
-	domain 		string
-}
-
 // Global Var
 var (
 	app 			= tview.NewApplication()
@@ -64,37 +63,33 @@ var (
 ) 
 
 // Global func
-func removeDuplicates[T comparable](array []T) []T {
+func RemoveDuplicates[T comparable](array []T) []T {
 	seen := make(map[T]bool)
 	result := []T{}
 	for _, item := range array {
-			if !seen[item] {
-					seen[item] = true
-					result = append(result, item)
-			}
+		if !seen[item] {
+			seen[item] = true
+			result = append(result, item)
+		}
 	}
 	return result
 }   
 
-func addtoLog(log string) {
+func Log(log string) {
 	go func() {
 		app.QueueUpdateDraw(func() {
 			fmt.Fprintln(logText, log)
 		})
 	}()
+	// Remember to store the log to .log
 }
 
-func recognizeDomain(nodes []string, domain string) bool  {
-	// Check if Domain exist
-	for _, n := range nodes {
-		if n == domain {
-			return true
-		}
-	}
-	return false
+func UpdateAll(){
+	// Update the Value of Current seen Element if Info in Storage change
+	// Use the Added/Deleted List to guide
 }
 
-func changeBox() {
+func ChangeBox() {
 	// Change to Account Details in DomainName/CategoryName
 	// Change to Add Account
 	// Change to List Domain in Root (1st)
@@ -102,115 +97,6 @@ func changeBox() {
 	// Change to Table of Leaked and Weak Password
 }
 
-func authentication() {
-	
-}
-
-type Account struct {
-
-}
-
-func provideDetails() {
-
-}
-
-func decryptPass() {
-
-}
-
-func scanWeakPass() {
-
-}
-
-func addAccount(domainName string, accountName string, curr_nodes []string) {
-	// Store Account
-	// Recognize the Domain to auto categorize
-	// Add account to Domain
-	if !recognizeDomain(curr_nodes, domainName) {
-		domain := tview.NewTreeNode(domainName)
-		domain.AddChild(tview.NewTreeNode(accountName))
-		root.AddChild(domain)
-	} else{
-		var domain *tview.TreeNode
-		root.Walk(func(node, parent *tview.TreeNode) bool {
-			if node.GetText() == domainName {
-					domain = node
-					return false // Stop traversal
-			}
-			return true
-		})
-		domain.AddChild(tview.NewTreeNode(accountName))
-	}
-
-	// Store Password
-
-	addtoLog(fmt.Sprintf("Successfully added \"%s\" to %s domain", accountName, domainName))
-}
-
-func deleteAccount()  {
-	
-}
-
-func updateAccount() {
-
-}
-
-func moveAccount() {
-	// Accept x & p vim keys
-	// Buffer to store file - Potential for Pwn?
-	// Delete & Add Account func in here
-}
-
-type Tree struct {
-	ChildNodeList []string
-	NodeList 			[]string
-	ChildList 			[]string
-}
-
-func loadTree(data *[]Credential) {
-	// Getting Domain, Account and Password through JSON file
-
-	// Create array for storing Domain in memory
-
-	// Create Tree branch
-	for _, cred := range *data {
-		domain := tview.NewTreeNode(cred.domain) // Add recognizeDomain here
-		domain.AddChild(tview.NewTreeNode(cred.username))
-		root.AddChild(domain)
-	}
-}
-
-func expandTree() {
-	
-}
-
-func unexpandTree() {
-
-}
-
-func deleteNode() {
-
-}
-
-type Data struct {
-
-}
-
-func loadInfo() {
-	// Acname Domain, 
-}
-
-func storeInfo() {
-
-}
-
-func decryptInfo() {
-
-}
-
-func encryptInfo() {
-
-}
 
 func main() {
 	// Load ENV VAR 
@@ -220,36 +106,48 @@ func main() {
 	}
 
 	// Load Data here
-	data := [...]Credential{
+	// password: os.Getenv("ZAX_PASS"),
+	data := [...]data.Storage{
 		{
-			id: uuid.New(),
-			username: "Zax",
-			password: os.Getenv("ZAX_PASS"),
-			domain: "adds.com",
+			ID: uuid.New(),
+			Username: "Zax",
+			Domain: "adds.com",
 		},
 		{
-			id: uuid.New(),
-			username: "Mathew",
-			password: os.Getenv("MATHEW_PASS"),
-			domain: "adds.com",
+			ID: uuid.New(),
+			Username: "Mathew",
+			Domain: "adds.com",
 		},
 		{
-			id: uuid.New(),
-			username: "Alex",
-			password: os.Getenv("ALEX_PASS"),
-			domain: "facebook.com",
+			ID: uuid.New(),
+			Username: "Alex",
+			Domain: "facebook.com",
 		},
 	}
 
-	nodes := []string{}
-	for _, c := range data {
-		nodes = append(nodes, c.domain)
+	slice := data[:]
+
+	// There should be an addedList to track and help update storage here
+
+	domains := []string{}
+	for _, c := range slice {
+		domains = append(domains, c.Domain)
 	}
 	
-	nodes = removeDuplicates(nodes) 
+	domains = RemoveDuplicates(domains) 
+	
+	accountHelper := account.Account{LogFunc: Log}
+	treeHelper := tree.Tree{
+		Root: root,
+		NodesList: make(map[string]*tview.TreeNode),
+		ChildNodeList: slice,
+		LogFunc: Log,
+	}
+	// dataHelper
+
 	// Banner
 	tcross :=  tview.NewTextView().
-	   SetText("TCROSS\n\n[aa] Add Account 	[ac] Add Category		[sp] Scan A Weak Password	 [spa] Scan Weak All Passwords	 [l] View logs") // Should be change to Flex
+	   SetText("TCROSS\n\n[aa] Add Account 	[ad] Add Domain 	[ac] Add Category		[sp] Scan A Weak Password	 [spa] Scan Weak All Passwords	 [l] View logs") // Should be change to Flex
 
 	// Instruction
 	text := tview.NewTextView().
@@ -273,8 +171,7 @@ func main() {
 		AddItem(logText, 0, 0, 1, 1, 0, 0, false)
 
 	// Creating the Tree Root
-	slice := data[:]
-	loadTree(&slice) // Convert fixed []Credential to *[]Credential   
+	treeHelper.LoadTree() // Convert fixed [3]Storage to *[]Storage   
 	tree := tview.NewTreeView().
 		SetRoot(root).
 		SetCurrentNode(root)
@@ -297,7 +194,7 @@ func main() {
 			domain := form.GetFormItemByLabel("Domain").(*tview.InputField).GetText()
 			account := form.GetFormItemByLabel("Account").(*tview.InputField).GetText()
 			// password := form.GetFormItemByLabel("Password").(*tview.InputField).GetText()
-			addAccount(domain, account, nodes)
+			accountHelper.AddAccount(&treeHelper, domain, account)
 		})
 
 	form.
@@ -305,7 +202,7 @@ func main() {
 		SetTitle(" Add Account [1] ").
 		SetTitleAlign(tview.AlignLeft)
 	
-	// Account Details Box
+	// Account Details Box (Box 2)
 	
 	// Grid Layout
 	grid := tview.NewGrid().
@@ -321,6 +218,7 @@ func main() {
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Rune() {
 		case 'q':
+			// Start to Store data here
 			app.Stop()
 			return nil
 		case '0':
