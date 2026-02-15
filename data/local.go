@@ -4,6 +4,11 @@ import (
 	"github.com/google/uuid"
 )
 
+type Credential struct {
+	ID 				uuid.UUID
+	Password 	string
+}
+
 type Storage struct {
 	ID 				uuid.UUID
 	Username	string
@@ -11,13 +16,13 @@ type Storage struct {
 }
 
 func NewStorage(username, domain string) *Storage {
-    return &Storage{
-        ID:       uuid.New(),
-        Username: username,
-        Domain:   domain,
-    }
+	return &Storage{
+		ID:       uuid.New(),
+		Username: username,
+		Domain:   domain,
+	}
 }
 
 func (s *Storage) GetDomain() string {
-    return s.Domain
+	return s.Domain
 }
