@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	// "os"
-	"log"
+	//"log"
   // "encoding/json"
 	"tools/account"
 	"tools/tree"
@@ -55,10 +55,8 @@ import (
 
 // Global Var
 var (
-	app 			= tview.NewApplication()
-	logText  	= tview.NewTextView()
-	form 			= tview.NewForm()
-	root 			= tview.NewTreeNode("Root")
+	app 				= tview.NewApplication()
+	logText  		= tview.NewTextView()
 	// Some Global list should be here (Domains)
 ) 
 
@@ -89,7 +87,7 @@ func UpdateAll(){
 	// Use the Added/Deleted List to guide
 }
 
-func ChangeBox() {
+func ChangeBox(*tview.Grid) {
 	// Change to Account Details in DomainName/CategoryName
 	// Change to Add Account
 	// Change to List Domain in Root (1st)
@@ -102,45 +100,68 @@ func main() {
 	// Load ENV VAR 
 	err := godotenv.Load()
 	if err != nil {
-			log.Fatal("Error loading .env file")
+		Log("Error loading .emv file.")
 	}
 
 	// Load Data here
-	// password: os.Getenv("ZAX_PASS"),
-	data := [...]data.Storage{
+	IDz := uuid.New()
+	IDm := uuid.New()
+	IDa := uuid.New()
+
+	// creds := [...]data.Credential{
+	// 	{
+	// 		ID: IDz,
+	// 		Password: os.Getenv("ZAX_PASS"),
+	// 	},
+	// 	{
+	// 		ID: IDm,
+	// 		Password: os.Getenv("MATHEW_PASS"),
+	// 	},
+	// 	{
+	// 		ID: IDa,
+	// 		Password: os.Getenv("ALEX_PASS"),
+	// 	},
+	// }
+	// This should be passed to security modules
+
+	dataLoaded := [...]data.Storage{
 		{
-			ID: uuid.New(),
+			ID: IDz,
 			Username: "Zax",
 			Domain: "adds.com",
 		},
 		{
-			ID: uuid.New(),
+			ID: IDm,
 			Username: "Mathew",
 			Domain: "adds.com",
 		},
 		{
-			ID: uuid.New(),
+			ID: IDa,
 			Username: "Alex",
 			Domain: "facebook.com",
 		},
 	}
 
-	slice := data[:]
+	data := dataLoaded[:]
 
 	// There should be an addedList to track and help update storage here
 
 	domains := []string{}
-	for _, c := range slice {
+	for _, c := range data {
 		domains = append(domains, c.Domain)
 	}
 	
 	domains = RemoveDuplicates(domains) 
 	
-	accountHelper := account.Account{LogFunc: Log}
+	root := tview.NewTreeNode("Root")
 	treeHelper := tree.Tree{
 		Root: root,
 		NodesList: make(map[string]*tview.TreeNode),
-		ChildNodeList: slice,
+		ChildNodeList: data,
+		LogFunc: Log,
+	}
+	accountHelper := account.Account{
+		Tree: &treeHelper,
 		LogFunc: Log,
 	}
 	// dataHelper
@@ -159,10 +180,10 @@ func main() {
 	logText.
 		SetDynamicColors(true).
 		SetScrollable(true).
-		SetText("Your logs and errors will appear here.\n").
-		SetChangedFunc(func() {
-			app.Draw()
-		})
+		SetText("Your logs and errors will appear here.\n")
+		// SetChangedFunc(func() {
+		// 	app.Draw()
+		// })
 
 	log := tview.NewGrid().
 		SetBorders(true).
@@ -172,44 +193,26 @@ func main() {
 
 	// Creating the Tree Root
 	treeHelper.LoadTree() // Convert fixed [3]Storage to *[]Storage   
-	tree := tview.NewTreeView().
-		SetRoot(root).
-		SetCurrentNode(root)
-	
-	tree.
-		SetBorder(true).
-		SetTitle(" Accounts Overview [0]").
-		SetTitleAlign(tview.AlignLeft)
-
-	tree.SetSelectedFunc(func(node *tview.TreeNode) {
-
-	})
+	tree := treeHelper.NewTree()
 	
 	// Add Account Section (Box 1)
-	form.
-		AddInputField("Domain", "", 30, nil, nil).
-		AddInputField("Account", "", 30, nil, nil).
-		AddPasswordField("Password", "", 30, '*', nil).
-		AddButton("Add", func() {
-			domain := form.GetFormItemByLabel("Domain").(*tview.InputField).GetText()
-			account := form.GetFormItemByLabel("Account").(*tview.InputField).GetText()
-			// password := form.GetFormItemByLabel("Password").(*tview.InputField).GetText()
-			accountHelper.AddAccount(&treeHelper, domain, account)
-		})
-
-	form.
-		SetBorder(true).
-		SetTitle(" Add Account [1] ").
-		SetTitleAlign(tview.AlignLeft)
+	// addAccform := accountHelper.NewAddAccForm()
 	
 	// Account Details Box (Box 2)
+	accDetails := accountHelper.NewAccDetails()
+
+	// List Domain in Root (should be the thing that appear first) (Box 3)
+
+	// List Account in Domain (Box 4)
+
+	// Add Pages for Auth, TCROSS dashboard, (Leaked Password Table)
 	
 	// Grid Layout
 	grid := tview.NewGrid().
 		SetRows(4, 0, 5).
 		SetColumns(35,0,0).
 		AddItem(tree, 1, 0, 1, 1, 25, 20, false).
-		AddItem(form, 1, 1, 1, 2, 25, 50, true).
+		AddItem(accDetails, 1, 1, 1, 2, 25, 50, true).
 		AddItem(tcross, 0, 0, 1, 3, 3, 0, false).
 		AddItem(text, 2, 0, 1, 2, 3, 0, false).
 		AddItem(log, 2, 2, 1, 1, 3, 0, false)
@@ -225,7 +228,7 @@ func main() {
 			app.SetFocus(tree)
 			return nil
 		case '1':
-			app.SetFocus(form)
+			app.SetFocus(accDetails)
 			return nil
 		}
 		return event

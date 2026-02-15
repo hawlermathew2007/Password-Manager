@@ -10,8 +10,26 @@ import (
 type Tree struct {
 	Root 					*tview.TreeNode
 	NodesList 		map[string]*tview.TreeNode
+	// ChildsList 		map[string][]string
 	ChildNodeList []data.Storage
 	LogFunc				func(string)
+}
+
+func (tree *Tree) NewTree() *tview.TreeView {
+	_tree := tview.NewTreeView().
+		SetRoot(tree.Root).
+		SetCurrentNode(tree.Root)
+	
+	_tree.
+		SetBorder(true).
+		SetTitle(" Accounts Overview [0]").
+		SetTitleAlign(tview.AlignLeft)
+
+	_tree.SetSelectedFunc(func(node *tview.TreeNode) {
+    tree.LogFunc(fmt.Sprintf("Selected: %s", node.GetText()))
+		// Create NewAccDetails here
+	})
+	return _tree
 }
 
 func (tree *Tree) ProvideCurrentNodes() []string {
@@ -41,11 +59,11 @@ func (tree *Tree) LoadTree() {
 }
 
 func (tree *Tree) ExpandNode() {
-	
+	// tview has Expand()
 }
 
 func (tree *Tree) UnexpandNode() {
-
+	// tview has Collapse()
 }
 
 func (tree *Tree) AddNodeNChild(nodeName string, childName string) {
