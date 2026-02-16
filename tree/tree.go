@@ -8,28 +8,12 @@ import (
 )
 
 type Tree struct {
-	Root 					*tview.TreeNode
-	NodesList 		map[string]*tview.TreeNode
-	// ChildsList 		map[string][]string
-	ChildNodeList []data.Storage
-	LogFunc				func(string)
-}
-
-func (tree *Tree) NewTree() *tview.TreeView {
-	_tree := tview.NewTreeView().
-		SetRoot(tree.Root).
-		SetCurrentNode(tree.Root)
-	
-	_tree.
-		SetBorder(true).
-		SetTitle(" Accounts Overview [0]").
-		SetTitleAlign(tview.AlignLeft)
-
-	_tree.SetSelectedFunc(func(node *tview.TreeNode) {
-    tree.LogFunc(fmt.Sprintf("Selected: %s", node.GetText()))
-		// Create NewAccDetails here
-	})
-	return _tree
+	Root 								*tview.TreeNode
+	NodesList 					map[string]*tview.TreeNode
+	ChildsList 					map[string][]string
+	ChildNodeList 			[]data.Storage
+	LogFunc							func(string)
+	// ProvideChildDetails func(...args) // accDetails := ui.NewAccDetails(&accountHelper) // Notes: take from UI module
 }
 
 func (tree *Tree) ProvideCurrentNodes() []string {
@@ -92,11 +76,12 @@ func (tree *Tree) UpdateNode() {
 }
 
 func (tree *Tree) AddChild(nodeName string, childName string) {
+	// Should only be called if the Domain for Acc exists
 	var _node *tview.TreeNode
 	tree.Root.Walk(func(node, parent *tview.TreeNode) bool {
 		if node.GetText() == nodeName {
 				_node = node
-				return false // Stop traversal
+				return false
 		}
 		return true
 	})
