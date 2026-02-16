@@ -4,6 +4,8 @@ import (
 
 )
 
+// Communicate with the file that store the encryption
+
 type Data struct {
 
 }
