@@ -8,6 +8,7 @@ import (
 	"tools/account"
 	"tools/tree"
 	"tools/data"
+	"tools/ui"
 	"github.com/joho/godotenv"
 	"github.com/google/uuid"
 	"github.com/rivo/tview"
@@ -15,6 +16,7 @@ import (
 )
 
 // How to make data in Storage hard to dump the hash?
+// Domain should be unique
 
 // Func orders:
 // - RecognizeDomain
@@ -61,17 +63,17 @@ var (
 ) 
 
 // Global func
-func RemoveDuplicates[T comparable](array []T) []T {
-	seen := make(map[T]bool)
-	result := []T{}
-	for _, item := range array {
-		if !seen[item] {
-			seen[item] = true
-			result = append(result, item)
-		}
-	}
-	return result
-}   
+// func RemoveDuplicates[T comparable](array []T) []T {
+// 	seen := make(map[T]bool)
+// 	result := []T{}
+// 	for _, item := range array {
+// 		if !seen[item] {
+// 			seen[item] = true
+// 			result = append(result, item)
+// 		}
+// 	}
+// 	return result
+// }   
 
 func Log(log string) {
 	go func() {
@@ -87,16 +89,10 @@ func UpdateAll(){
 	// Use the Added/Deleted List to guide
 }
 
-func ChangeBox(*tview.Grid) {
-	// Change to Account Details in DomainName/CategoryName
-	// Change to Add Account
-	// Change to List Domain in Root (1st)
-	// Change to List Account in Domain 
-	// Change to Table of Leaked and Weak Password
-}
-
-
 func main() {
+
+	root := tview.NewTreeNode("Root")
+
 	// Load ENV VAR 
 	err := godotenv.Load()
 	if err != nil {
@@ -107,6 +103,8 @@ func main() {
 	IDz := uuid.New()
 	IDm := uuid.New()
 	IDa := uuid.New()
+
+	// There should be an addedList to track and help update storage here
 
 	// creds := [...]data.Credential{
 	// 	{
@@ -128,38 +126,33 @@ func main() {
 		{
 			ID: IDz,
 			Username: "Zax",
+			Notes: "My account for Active Directory Practice",
 			Domain: "adds.com",
 		},
 		{
 			ID: IDm,
 			Username: "Mathew",
+			Notes: "My account for Active Directory Practice",
 			Domain: "adds.com",
 		},
 		{
 			ID: IDa,
 			Username: "Alex",
+			Notes: "My Social Media Account",
 			Domain: "facebook.com",
 		},
 	}
 
-	data := dataLoaded[:]
+	_data := dataLoaded[:]
 
-	// There should be an addedList to track and help update storage here
-
-	domains := []string{}
-	for _, c := range data {
-		domains = append(domains, c.Domain)
-	}
-	
-	domains = RemoveDuplicates(domains) 
-	
-	root := tview.NewTreeNode("Root")
 	treeHelper := tree.Tree{
 		Root: root,
 		NodesList: make(map[string]*tview.TreeNode),
-		ChildNodeList: data,
+		ChildsList: make(map[string][]string),
+		ChildNodeList: _data,
 		LogFunc: Log,
 	}
+
 	accountHelper := account.Account{
 		Tree: &treeHelper,
 		LogFunc: Log,
@@ -180,10 +173,10 @@ func main() {
 	logText.
 		SetDynamicColors(true).
 		SetScrollable(true).
-		SetText("Your logs and errors will appear here.\n")
-		// SetChangedFunc(func() {
-		// 	app.Draw()
-		// })
+		SetText("Your logs and errors will appear here.\n").
+		SetChangedFunc(func() {
+			app.Draw()
+		})
 
 	log := tview.NewGrid().
 		SetBorders(true).
@@ -191,19 +184,12 @@ func main() {
 		SetColumns(0).
 		AddItem(logText, 0, 0, 1, 1, 0, 0, false)
 
-	// Creating the Tree Root
-	treeHelper.LoadTree() // Convert fixed [3]Storage to *[]Storage   
-	tree := treeHelper.NewTree()
-	
-	// Add Account Section (Box 1)
-	// addAccform := accountHelper.NewAddAccForm()
-	
-	// Account Details Box (Box 2)
-	accDetails := accountHelper.NewAccDetails()
-
-	// List Domain in Root (should be the thing that appear first) (Box 3)
-
-	// List Account in Domain (Box 4)
+	// Boxes
+	uiHolder := ui.Item{}
+	treeHelper.LoadTree()
+	tree := uiHolder.NewTree(&treeHelper)
+	addAccForm := ui.NewAddAccForm(&accountHelper)
+	accDetails := ui.NewAccDetails(&accountHelper) // Sample (will be removed once the Storage is refined)
 
 	// Add Pages for Auth, TCROSS dashboard, (Leaked Password Table)
 	
@@ -212,23 +198,30 @@ func main() {
 		SetRows(4, 0, 5).
 		SetColumns(35,0,0).
 		AddItem(tree, 1, 0, 1, 1, 25, 20, false).
-		AddItem(accDetails, 1, 1, 1, 2, 25, 50, true).
+		AddItem(addAccForm, 1, 1, 1, 2, 25, 50, true).
 		AddItem(tcross, 0, 0, 1, 3, 3, 0, false).
 		AddItem(text, 2, 0, 1, 2, 3, 0, false).
 		AddItem(log, 2, 2, 1, 1, 3, 0, false)
+
+	uiHolder.Grid = grid
+	uiHolder.UsedItem = addAccForm
+	uiHolder.CurrentItem = addAccForm
+	uiHolder.AddAccount = addAccForm
+	uiHolder.AccountDetails = accDetails
 
 	// Vim keys
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Rune() {
 		case 'q':
-			// Start to Store data here
+			// Start to Store data to file here
+			// Problem: Cannot type q when entering text in field
 			app.Stop()
 			return nil
 		case '0':
 			app.SetFocus(tree)
 			return nil
 		case '1':
-			app.SetFocus(accDetails)
+			app.SetFocus(uiHolder.CurrentItem)
 			return nil
 		}
 		return event

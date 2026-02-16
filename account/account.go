@@ -20,8 +20,7 @@ func (acc *Account) ProvideDetails() {
 
 func (acc *Account) AddAccount(domainName string, accountName string) {
 	// Store Account
-	// Recognize the Domain to auto categorize
-	// Add account to Domain
+	// Do something with data here
 	if !acc.Tree.HasDomain(domainName) {
 		acc.Tree.AddNodeNChild(domainName, accountName)
 	} else{
