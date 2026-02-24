@@ -2,26 +2,34 @@ package tree
 
 import (
 	"fmt"
+	// "tools/account"
 	"tools/data"
-  "golang.org/x/exp/maps"
+	"github.com/google/uuid"
 	"github.com/rivo/tview"
+	"golang.org/x/exp/maps"
 )
 
 type Tree struct {
 	Root 								*tview.TreeNode
 	NodesList 					map[string]*tview.TreeNode
-	ChildsList 					map[string][]string
-	ChildNodeList 			[]data.Storage
+	ChildsList 					map[*tview.TreeNode]uuid.UUID // Domain ID
+	ChildNodeList 			[]data.DomainDetails
 	LogFunc							func(string)
+	CreateChildContent	func(uuid.UUID) *tview.Frame
+	SelectChild					func(string)
 	// ProvideChildDetails func(...args) // accDetails := ui.NewAccDetails(&accountHelper) // Notes: take from UI module
 }
 
-func (tree *Tree) ProvideCurrentNodes() []string {
+func (tree *Tree) ProvideCurrentNodeNames() []string {
 	return maps.Keys(tree.NodesList)
 }
 
-func (tree *Tree) ProvideChildsInNode(nodeName string) {
+func (tree *Tree) ProvideCurrentNodes() []*tview.TreeNode {
+	return maps.Values(tree.NodesList)
+}
 
+func (tree *Tree) ProvideChildID(node *tview.TreeNode) uuid.UUID{
+	return tree.ChildsList[node]
 }
 
 func (tree *Tree) HasDomain(nodeName string) bool {
@@ -32,33 +40,59 @@ func (tree *Tree) HasDomain(nodeName string) bool {
 
 func (tree *Tree) LoadTree() {
 	for _, data := range tree.ChildNodeList {
-		nodeName := data.Domain
-		childName := data.Username
-		if !tree.HasDomain(nodeName) {
-			tree.AddNodeNChild(nodeName, childName)
-		} else{
-			tree.AddChild(nodeName, childName)
+		nodeName := data.DomainName
+		childs := data.Usernames
+		for _, child := range childs {
+			if !tree.HasDomain(nodeName) {
+				tree.AddNodeNChild(nodeName, child.Username, child.ID)
+			} else{
+				tree.AddChild(nodeName, child.Username, child.ID)
+			}
 		}
 	}
 }
 
-func (tree *Tree) ExpandNode() {
-	// tview has Expand()
+func (tree *Tree) ExpandNode(node *tview.TreeNode) {
+	node.Expand()
 }
 
-func (tree *Tree) UnexpandNode() {
-	// tview has Collapse()
+func (tree *Tree) UnexpandNode(node *tview.TreeNode) {
+	node.Collapse()
 }
 
-func (tree *Tree) AddNodeNChild(nodeName string, childName string) {
+func (tree *Tree) ExpandNodeAll() {
+	tree.Root.ExpandAll()
+}
+
+func (tree *Tree) UnexpandNodeAll() {
+	tree.Root.CollapseAll()
+}
+
+func (tree *Tree) AddNodeNChild(nodeName string, childName string, childID uuid.UUID) {
+
 	node := tview.NewTreeNode(nodeName)
-	node.AddChild(tview.NewTreeNode(childName))
+	child := tview.NewTreeNode(childName)
+
+	node.SetSelectedFunc(func() {
+	  tree.LogFunc(fmt.Sprintf("Node: %s", node.GetText()))
+	})
+	child.SetSelectedFunc(func(){
+		tree.LogFunc(fmt.Sprintf("Child: %s", child.GetText()))
+		tree.CreateChildContent(tree.ProvideChildID(child))
+		tree.SelectChild("accDet")
+	})
+	node.AddChild(child)
+	
+	tree.ChildsList[child] = childID
 	tree.NodesList[nodeName] = node
 	tree.Root.AddChild(node)
 }
 
 func (tree *Tree) AddNode(nodeName string) {
 	node := tview.NewTreeNode(nodeName)
+	node.SetSelectedFunc(func() {
+	   tree.LogFunc(fmt.Sprintf("Node: %s", node.GetText()))
+	})
 	tree.NodesList[nodeName] = node
 	tree.Root.AddChild(node)
 }
@@ -75,7 +109,7 @@ func (tree *Tree) UpdateNode() {
 
 }
 
-func (tree *Tree) AddChild(nodeName string, childName string) {
+func (tree *Tree) AddChild(nodeName string, childName string, childID uuid.UUID) {
 	// Should only be called if the Domain for Acc exists
 	var _node *tview.TreeNode
 	tree.Root.Walk(func(node, parent *tview.TreeNode) bool {
@@ -89,7 +123,14 @@ func (tree *Tree) AddChild(nodeName string, childName string) {
 		tree.LogFunc(fmt.Sprintf("Error creating \"%s\" account.", childName))
 		return
 	}
-	_node.AddChild(tview.NewTreeNode(childName))
+	child := tview.NewTreeNode(childName)
+	child.SetSelectedFunc(func(){
+		tree.LogFunc(fmt.Sprintf("Child: %s", child.GetText()))
+		tree.CreateChildContent(tree.ProvideChildID(child))
+		tree.SelectChild("accDet")
+	})
+	tree.ChildsList[child] = childID
+	_node.AddChild(child)
 }
 
 func (tree *Tree) DeleteChild() {

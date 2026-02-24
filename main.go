@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	// "os"
+	"os"
 	//"log"
   // "encoding/json"
 	"tools/account"
@@ -17,6 +17,15 @@ import (
 
 // How to make data in Storage hard to dump the hash?
 // Domain should be unique
+// Should add Error handling
+// Domain ID is kinda redundant
+// Ya need to add errors handler for data that might not always be available
+
+// Objectives: Be able to add account and access the account accurately
+// - Fix the tree
+// - Change the NewAccDetails in UI Module
+// - Be able to change the ModifiedList
+// - decryptPass (can be simulated not actually decrypt lol)
 
 // Func orders:
 // - RecognizeDomain
@@ -82,6 +91,7 @@ func Log(log string) {
 		})
 	}()
 	// Remember to store the log to .log
+	// .log has access.log for what the user done, errors.log for the program errors
 }
 
 func UpdateAll(){
@@ -104,25 +114,34 @@ func main() {
 	IDm := uuid.New()
 	IDa := uuid.New()
 
-	// There should be an addedList to track and help update storage here
+	IDadds := uuid.New()
+	IDface := uuid.New()
 
-	// creds := [...]data.Credential{
-	// 	{
-	// 		ID: IDz,
-	// 		Password: os.Getenv("ZAX_PASS"),
-	// 	},
-	// 	{
-	// 		ID: IDm,
-	// 		Password: os.Getenv("MATHEW_PASS"),
-	// 	},
-	// 	{
-	// 		ID: IDa,
-	// 		Password: os.Getenv("ALEX_PASS"),
-	// 	},
-	// }
+	// Temporary in Load all Mode (Default should be Lazy Load)
+	// There should be an addedList to track and help update storage here
+	// data := EncryptData(encryptionKey)
+
+	// Data will manage this
+	// This should not be exist here but leave as temp
+	creds := [...]data.Credential{ 
+		{
+			ID: IDz,
+			Password: os.Getenv("ZAX_PASS"),
+		},
+		{
+			ID: IDm,
+			Password: os.Getenv("MATHEW_PASS"),
+		},
+		{
+			ID: IDa,
+			Password: os.Getenv("ALEX_PASS"),
+		},
+	}
 	// This should be passed to security modules
 
-	dataLoaded := [...]data.Storage{
+	// AccountDetails no need to have ID, the map in manage module should have
+	// Will be refined
+	accounts := [...]data.AccountDetails{
 		{
 			ID: IDz,
 			Username: "Zax",
@@ -143,21 +162,35 @@ func main() {
 		},
 	}
 
-	_data := dataLoaded[:]
-
-	treeHelper := tree.Tree{
-		Root: root,
-		NodesList: make(map[string]*tview.TreeNode),
-		ChildsList: make(map[string][]string),
-		ChildNodeList: _data,
-		LogFunc: Log,
+	// Tree will manage this
+	domainLoaded:= [...]data.DomainDetails{
+		{
+			ID: IDadds,
+			DomainName: "adds.com",
+			Usernames: []data.PartialDomainDetail{
+				{
+					ID: IDz,
+					Username: "Zax",
+				},
+				{
+					ID: IDm,
+					Username: "Mathew",
+				},
+			},
+		},
+		{
+			ID: IDface,
+			DomainName: "facebook.com",
+			Usernames: []data.PartialDomainDetail{
+				{
+					ID: IDa,
+					Username: "Alex",
+				},
+			},
+		},
 	}
 
-	accountHelper := account.Account{
-		Tree: &treeHelper,
-		LogFunc: Log,
-	}
-	// dataHelper
+	domain := domainLoaded[:]
 
 	// Banner
 	tcross :=  tview.NewTextView().
@@ -186,10 +219,24 @@ func main() {
 
 	// Boxes
 	uiHolder := ui.Item{}
+	treeHelper := tree.Tree{
+		Root: root,
+		NodesList: make(map[string]*tview.TreeNode),
+		ChildsList: make(map[*tview.TreeNode]uuid.UUID),
+		ChildNodeList: domain,
+		LogFunc: Log,
+	}
+	// dataHelper
 	treeHelper.LoadTree()
+	dataManager := data.TrackLoadedList(accounts[:], creds[:])
+	accountHelper := account.Account{
+		Tree: &treeHelper,
+		DataManager: dataManager,
+		LogFunc: Log,
+	}
 	tree := uiHolder.NewTree(&treeHelper)
-	addAccForm := ui.NewAddAccForm(&accountHelper)
-	accDetails := ui.NewAccDetails(&accountHelper) // Sample (will be removed once the Storage is refined)
+	addAccForm := uiHolder.NewAddAccForm()
+	// accDetails := ui.NewAccDetails(&accountHelper) // Sample (will be removed once the Storage is refined)
 
 	// Add Pages for Auth, TCROSS dashboard, (Leaked Password Table)
 	
@@ -203,11 +250,17 @@ func main() {
 		AddItem(text, 2, 0, 1, 2, 3, 0, false).
 		AddItem(log, 2, 2, 1, 1, 3, 0, false)
 
+	uiHolder.Account = &accountHelper
+	uiHolder.Tree = &treeHelper
+	uiHolder.DataManager = dataManager
 	uiHolder.Grid = grid
 	uiHolder.UsedItem = addAccForm
 	uiHolder.CurrentItem = addAccForm
-	uiHolder.AddAccount = addAccForm
-	uiHolder.AccountDetails = accDetails
+	uiHolder.AddAccountForm = addAccForm
+
+	treeHelper.CreateChildContent	= uiHolder.NewAccDetails
+	treeHelper.SelectChild = uiHolder.ChangeBox
+	// uiHolder.AccountDetails = accDetails
 
 	// Vim keys
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -215,6 +268,13 @@ func main() {
 		case 'q':
 			// Start to Store data to file here
 			// Problem: Cannot type q when entering text in field
+			// Sol: Add this when the user is in the form. Press ESC to unfocus
+			// textView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			// 		if event.Rune() == 'w' {
+			// 				return tcell.NewEventKey(tcell.KeyRune, 'j', tcell.ModNone)
+			// 		}
+			// 		return event
+			// })
 			app.Stop()
 			return nil
 		case '0':

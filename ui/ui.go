@@ -1,19 +1,26 @@
 package ui
 
 import (
-	"fmt"
-	"tools/tree"
 	"tools/account"
+	"tools/data"
+	// "tools/security"
+	"tools/tree"
+
+	"github.com/gdamore/tcell/v2"
+	"github.com/google/uuid"
 	"github.com/rivo/tview"
-  "github.com/gdamore/tcell/v2"
 )
 
 type Item struct {
+	Tree 						*tree.Tree
+	Account 				*account.Account
+	DataManager			*data.Manager
 	Grid 						*tview.Grid
 	UsedItem 				tview.Primitive
 	CurrentItem 		tview.Primitive
-	AddAccount 			*tview.Form
+	AddAccountForm 	*tview.Form
 	AccountDetails 	*tview.Frame
+	// TreeView (Domain or Category)
 	// ListDomains
 	// ListAccs
 	// SmallPassTable
@@ -24,7 +31,7 @@ type Page struct {
 }
 
 // Account
-func NewAddAccForm(acc *account.Account) *tview.Form {
+func (item *Item) NewAddAccForm() *tview.Form {
 	form := tview.NewForm()
 	form.
 		AddInputField("Domain", "", 30, nil, nil).
@@ -34,26 +41,27 @@ func NewAddAccForm(acc *account.Account) *tview.Form {
 		AddButton("Add", func() {
 			domain := form.GetFormItemByLabel("Domain").(*tview.InputField).GetText()
 			account := form.GetFormItemByLabel("Account").(*tview.InputField).GetText()
-			// password := form.GetFormItemByLabel("Password").(*tview.InputField).GetText()
-			// notes := form.GetFormItemByLabel("Notes").(*tview.InputField).GetText()
-			// Should Deal with Password ofc
+			password := form.GetFormItemByLabel("Password").(*tview.InputField).GetText()
+			notes := form.GetFormItemByLabel("Notes").(*tview.TextArea).GetText()
 			
-			acc.AddAccount(domain, account)
+			item.Account.AddAccount(account, password, domain, notes)
 		}).
 		AddButton("Scan", func() {
-			acc.LogFunc("Scanning your Pass...")
+			item.Account.LogFunc("Scanning your Pass...")
 		})
 
 	form.
 		SetBorder(true).
 		SetTitle(" Add Account [1] ").
 		SetTitleAlign(tview.AlignLeft)
-
+	
+	item.AddAccountForm = form
 	return form
 }
 
 // args: domain, username, notes, ID
-func NewAccDetails(acc *account.Account) *tview.Frame {
+// Worl with data module
+func (item *Item) NewAccDetails(accountID uuid.UUID) *tview.Frame {
 
 	CreateField := func(labelText string, fieldText string) tview.Primitive {
 
@@ -65,19 +73,35 @@ func NewAccDetails(acc *account.Account) *tview.Frame {
 			SetText(fieldText).
 			SetAcceptanceFunc(func(text string, ch rune) bool {
 				return false
-			})
+			})		
 
 		switch labelText {
 			case "Password":
+
+				visible := false
+
 				field.
 					SetMaskCharacter('*').
 					SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 						if event.Key() == tcell.KeyEnter {
-							acc.LogFunc("Show Password")
+
+							visible = !visible
+
+							if visible {
+								// pwd := sec.DecryptPass(accountID)
+								field.SetMaskCharacter(0) // unmask
+								// field.SetText(pwd)
+							} else {
+								field.SetMaskCharacter('*') // mask again
+								// field.SetText(labelText)
+							}
+
+							item.Account.LogFunc("Show Password")
+
 							return nil
 						}
 						if event.Rune() == 'c' {
-							acc.LogFunc("Copied Password")
+							item.Account.LogFunc("Copied Password")
 							return nil
 						}
 						return event
@@ -92,10 +116,21 @@ func NewAccDetails(acc *account.Account) *tview.Frame {
 		return container
 	}
 
-	siteField := CreateField("Site", "adds.com")
-	noteField := CreateField("Notes", "Just a test password")
-	userField := CreateField("Username", "Administrator")
-	passField := CreateField("Password", "THJDOWHASHEDSKKD")
+	// Start your day here
+	if item.DataManager == nil {
+		panic("The item.DataManager is nil.")
+	}
+
+	siteText := item.DataManager.LoadedAccountsList[accountID].Domain
+	noteText := item.DataManager.LoadedAccountsList[accountID].Notes
+	userText := item.DataManager.LoadedAccountsList[accountID].Username
+	passText := item.DataManager.LoadedCredsList[accountID]
+
+	siteField := CreateField("Site", siteText)
+	noteField := CreateField("Notes", noteText)
+	userField := CreateField("Username", userText)
+	passField := CreateField("Password", passText)
+	// "HWHHASHEDHAHASKJDF" will be used to obfuscate the pwd length
 
 	editBtn := tview.NewButton("Edit").
 		SetSelectedFunc(func() {})
@@ -133,6 +168,8 @@ func NewAccDetails(acc *account.Account) *tview.Frame {
 		SetBorder(true).
 		SetTitle(" Account Details [1] ").
 		SetTitleAlign(tview.AlignLeft)
+	
+	item.AccountDetails = frame
 
 	return frame
 }
@@ -148,13 +185,6 @@ func (item *Item) NewTree(tree *tree.Tree) *tview.TreeView {
 		SetTitle(" Accounts Overview [0] ").
 		SetTitleAlign(tview.AlignLeft)
 
-	_tree.SetSelectedFunc(func(node *tview.TreeNode) {
-    tree.LogFunc(fmt.Sprintf("Selected: %s", node.GetText()))
-		item.ChangeBox("accDet")
-		// Create NewAccDetails here (using ui module)
-		// Should be able to provide the ID
-		// Note: Shoudl check if the nodeName is in Domain or is Domain carefully
-	})
 	return _tree
 }
 
@@ -164,14 +194,16 @@ func (item *Item) ChangeBox(options string) {
 		case "addAcc":
 			// Change to Add Account
 			item.Grid.RemoveItem(item.UsedItem)
-			item.Grid.AddItem(item.AddAccount, 1, 1, 1, 2, 25, 50, true)
-			item.UsedItem = item.AddAccount
+			item.Grid.AddItem(item.AddAccountForm, 1, 1, 1, 2, 25, 50, true)
+			item.UsedItem = item.CurrentItem
+			item.CurrentItem = item.AddAccountForm
 
 		case "accDet":
 			// Change to Account Details in DomainName/CategoryName
 			item.Grid.RemoveItem(item.UsedItem)
 			item.Grid.AddItem(item.AccountDetails, 1, 1, 1, 2, 25, 50, true)
-			item.UsedItem = item.AccountDetails
+			item.UsedItem = item.CurrentItem
+			item.CurrentItem = item.AccountDetails
 
 			// Change to List Domain in Root (1st)
 			// Change to List Account in Domain 
