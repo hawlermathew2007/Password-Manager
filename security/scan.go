@@ -4,6 +4,10 @@ import (
 
 )
 
-func ScanWeakPass(sec *Security) {
+func (sec *Security) ValidateDomain() {
+
+}
+
+func (sec *Security) ScanWeakPass() {
 
 }
