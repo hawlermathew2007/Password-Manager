@@ -4,49 +4,49 @@ import (
 
 )
 
-// Communicate with the file that store the encryption
+// Communicate with the file that store the encrypted data
 
-type Data struct {
-
+type Storage struct {
+	// The attributes should be the current data having currently for Manage to work properly
 }
 // These funcs can be reduced ig
-func (data *Data) LoadData() {
+func (data *Storage) LoadData() {
 	// Acname Domain, 
 }
 
-func (data *Data) AddDomain() {
+func (data *Storage) AddDomain() {
 
 }
 
-func (data *Data) RemoveDomain() {
+func (data *Storage) RemoveDomain() {
 
 }
 
-func (data *Data) UpdateDomain()  {
+func (data *Storage) UpdateDomain()  {
 	
 }
 
-func (data *Data) AddAccountName() {
+func (data *Storage) AddAccountName() {
 
 }
 
-func (data *Data) RemoveAccountName() {
+func (data *Storage) RemoveAccountName() {
 
 }
 
-func (data *Data) UpdateAccountName()  {
+func (data *Storage) UpdateAccountName()  {
 	
 }
 
-func (data *Data) AddPass() {
+func (data *Storage) AddPass() {
 
 }
 
-func (data *Data) RemovePass() {
+func (data *Storage) RemovePass() {
 
 }
 
-func (data *Data) UpdatePass()  {
+func (data *Storage) UpdatePass()  {
 	
 }
 
