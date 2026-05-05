@@ -9,6 +9,11 @@ import (
 type Storage struct {
 	// The attributes should be the current data having currently for Manage to work properly
 }
+
+func (data *Storage) initStorage() {
+
+}
+
 // These funcs can be reduced ig
 func (data *Storage) LoadData() {
 	// Acname Domain, 

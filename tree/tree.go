@@ -1,20 +1,24 @@
 package tree
 
 import (
-	"fmt"
+	// "fmt"
 	// "tools/account"
 	"tools/data"
+	"tools/debug"
 	"github.com/google/uuid"
 	"github.com/rivo/tview"
 	"golang.org/x/exp/maps"
 )
+
+// Responsible for the Tree UI & Provide details about Accounts
+type LogFuncTree func(logType debug.LogType, context debug.LogContext)
 
 type Tree struct {
 	Root 								*tview.TreeNode
 	NodesList 					map[string]*tview.TreeNode
 	ChildsList 					map[*tview.TreeNode]uuid.UUID // Domain ID
 	ChildNodeList 			[]data.DomainDetails
-	LogFunc							func(string)
+	LogFunc							LogFuncTree
 	CreateChildContent	func(uuid.UUID) *tview.Frame
 	SelectChild					func(string)
 	// ProvideChildDetails func(...args) // accDetails := ui.NewAccDetails(&accountHelper) // Notes: take from UI module
@@ -74,10 +78,17 @@ func (tree *Tree) AddNodeNChild(nodeName string, childName string, childID uuid.
 	child := tview.NewTreeNode(childName)
 
 	node.SetSelectedFunc(func() {
-	  tree.LogFunc(fmt.Sprintf("Node: %s", node.GetText()))
+	  // tree.LogFunc(fmt.Sprintf("Node: %s", node.GetText()))
+		tree.LogFunc(debug.TreeNodeSelected, debug.LogContext{
+			Domain: nodeName,
+		})
 	})
 	child.SetSelectedFunc(func(){
-		tree.LogFunc(fmt.Sprintf("Child: %s", child.GetText()))
+		// tree.LogFunc(fmt.Sprintf("Child: %s", child.GetText()))
+		tree.LogFunc(debug.TreeChildSelected, debug.LogContext{
+			Username: childName,
+			Domain: nodeName,	
+		})
 		tree.CreateChildContent(tree.ProvideChildID(child))
 		tree.SelectChild("accDet")
 	})
@@ -91,7 +102,10 @@ func (tree *Tree) AddNodeNChild(nodeName string, childName string, childID uuid.
 func (tree *Tree) AddNode(nodeName string) {
 	node := tview.NewTreeNode(nodeName)
 	node.SetSelectedFunc(func() {
-	   tree.LogFunc(fmt.Sprintf("Node: %s", node.GetText()))
+	  // tree.LogFunc(fmt.Sprintf("Node: %s", node.GetText()))
+		tree.LogFunc(debug.TreeNodeSelected, debug.LogContext{
+			Domain: nodeName,
+		})
 	})
 	tree.NodesList[nodeName] = node
 	tree.Root.AddChild(node)
@@ -120,12 +134,17 @@ func (tree *Tree) AddChild(nodeName string, childName string, childID uuid.UUID)
 		return true
 	})
 	if _node == nil {
-		tree.LogFunc(fmt.Sprintf("Error creating \"%s\" account.", childName))
+		// tree.LogFunc(fmt.Sprintf("Error creating \"%s\" account.", childName))
+		// Use Error Handler instead
 		return
 	}
 	child := tview.NewTreeNode(childName)
 	child.SetSelectedFunc(func(){
-		tree.LogFunc(fmt.Sprintf("Child: %s", child.GetText()))
+		// tree.LogFunc(fmt.Sprintf("Child: %s", child.GetText()))
+		tree.LogFunc(debug.TreeChildSelected, debug.LogContext{
+			Username: childName,
+			Domain: nodeName,	
+		})
 		tree.CreateChildContent(tree.ProvideChildID(child))
 		tree.SelectChild("accDet")
 	})

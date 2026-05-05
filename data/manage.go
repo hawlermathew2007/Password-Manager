@@ -14,7 +14,7 @@ type Manager struct {
 
 func TrackLoadedList(accounts []AccountDetails, creds []Credential) *Manager {
 	manager := &Manager{
-		ModifiedList:       []string{},
+		ModifiedList:       []string{}, // This is act as instruction for Store to act
 		LoadedAccountsList: make(map[uuid.UUID]AccountDetails),
 		LoadedCredsList:    make(map[uuid.UUID]string),
 	}

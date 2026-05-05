@@ -3,6 +3,8 @@ package ui
 import (
 	"tools/account"
 	"tools/data"
+	"tools/debug"
+
 	// "tools/security"
 	"tools/tree"
 
@@ -18,16 +20,11 @@ type Item struct {
 	Grid 						*tview.Grid
 	UsedItem 				tview.Primitive
 	CurrentItem 		tview.Primitive
+	TreeBox 				*tview.TreeView
 	AddAccountForm 	*tview.Form
 	AccountDetails 	*tview.Frame
-	// TreeView (Domain or Category)
 	// ListDomains
 	// ListAccs
-	// SmallPassTable
-}
-
-type Page struct {
-
 }
 
 // Account
@@ -47,7 +44,11 @@ func (item *Item) NewAddAccForm() *tview.Form {
 			item.Account.AddAccount(account, password, domain, notes)
 		}).
 		AddButton("Scan", func() {
-			item.Account.LogFunc("Scanning your Pass...")
+			item.Account.LogFunc(debug.PwdScanned, debug.LogContext{
+				Username: "Test",
+				Domain: "Test again",
+				ScanResult: "Again",
+			})
 		})
 
 	form.
@@ -60,8 +61,13 @@ func (item *Item) NewAddAccForm() *tview.Form {
 }
 
 // args: domain, username, notes, ID
-// Worl with data module
+// Work with data module
 func (item *Item) NewAccDetails(accountID uuid.UUID) *tview.Frame {
+
+	siteText := item.DataManager.LoadedAccountsList[accountID].Domain
+	noteText := item.DataManager.LoadedAccountsList[accountID].Notes
+	userText := item.DataManager.LoadedAccountsList[accountID].Username
+	passText := item.DataManager.LoadedCredsList[accountID]
 
 	CreateField := func(labelText string, fieldText string) tview.Primitive {
 
@@ -96,12 +102,19 @@ func (item *Item) NewAccDetails(accountID uuid.UUID) *tview.Frame {
 								// field.SetText(labelText)
 							}
 
-							item.Account.LogFunc("Show Password")
+							item.Account.LogFunc(debug.PwdShown, debug.LogContext{
+								Username: userText,
+								Domain: siteText,
+							})
 
 							return nil
 						}
 						if event.Rune() == 'c' {
-							item.Account.LogFunc("Copied Password")
+							// Copy to Clipboard // may need to check for Clipboard software?
+							item.Account.LogFunc(debug.PwdCopied, debug.LogContext{
+								Username: userText,
+								Domain: siteText,
+							})
 							return nil
 						}
 						return event
@@ -120,11 +133,6 @@ func (item *Item) NewAccDetails(accountID uuid.UUID) *tview.Frame {
 	if item.DataManager == nil {
 		panic("The item.DataManager is nil.")
 	}
-
-	siteText := item.DataManager.LoadedAccountsList[accountID].Domain
-	noteText := item.DataManager.LoadedAccountsList[accountID].Notes
-	userText := item.DataManager.LoadedAccountsList[accountID].Username
-	passText := item.DataManager.LoadedCredsList[accountID]
 
 	siteField := CreateField("Site", siteText)
 	noteField := CreateField("Notes", noteText)
@@ -209,8 +217,4 @@ func (item *Item) ChangeBox(options string) {
 			// Change to List Account in Domain 
 			// Change to Table of Leaked and Weak Password
 	}
-}
-
-func (page *Page) ChangePage() {
-	// Page Layout for providing Modal, Dashboard, Table (Scan Pass)
 }

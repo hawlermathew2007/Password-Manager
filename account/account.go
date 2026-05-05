@@ -1,16 +1,21 @@
 package account
 
 import (
-	"fmt"
+	// "fmt"
 	"tools/tree"
 	"tools/data"
+	"tools/debug"
 	// "github.com/google/uuid"
 )
+
+// Announce Manager and Contribute to the changes in UI
+
+type LogFuncAcc func(logType debug.LogType, context debug.LogContext)
 
 type Account struct {
 	Tree 				*tree.Tree	
 	DataManager *data.Manager
-	LogFunc 		func(string)
+	LogFunc 		LogFuncAcc
 }
 
 func (acc *Account) ProvideAccsInDomain() {
@@ -33,7 +38,10 @@ func (acc *Account) AddAccount(accountName string, password string, domainName s
 	}
 	// Store Password it is encrypted ofc in passwordList along with ID
 
-	acc.LogFunc(fmt.Sprintf("Successfully added \"%s\" to %s domain", accountName, domainName))
+	acc.LogFunc(debug.MasterCreateAcc, debug.LogContext{
+		Username: accountName,
+		Domain: domainName,
+	})
 }
 
 func (acc *Account) DeleteAccount()  {
